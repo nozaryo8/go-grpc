@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+// option java_multiple_files = true;
+// option java_package = "example.grpc.helloworld";
+// option java_outer_classname = "HelloWorldProto";
+// package helloworld;
+option go_package = "./pb";
+
+
+
+// service Greeter {
+//   rpc SayHello (HelloRequest) returns (HelloReply) {}
+// }
+
+// message HelloRequest {
+//   string name = 1;
+// }
+
+// message HelloReply {
+//   string message = 1;
+// }
+
+
+package demo;
+
+//service Greet {
+//  rpc SayHello (GreetRequest) returns (GreetResponse) {}
+//}
+
+message TestRequest {
+  string name = 1;
+  string message = 2;
+  string age = 3;
+}
+
+message TestResponse {
+  string name = 1;
+  string message = 2;
+  string age = 3;
+}
+
+message ARequest {
+  string name = 1;
+}
+
+message AResponse {
+  string message = 1;
+}
+
+service Test {
+  // 通常のRPC
+  rpc Unary (TestRequest) returns (TestResponse) {};
+
+  // サーバーストリーミングRPC
+  rpc ServerStreaming (TestRequest) returns (stream TestResponse) {};
+
+  rpc AStreaming (ARequest) returns (stream AResponse) {};
+
+  // クライアントストリーミングRPC
+  rpc ClientStreaming (stream TestRequest) returns (TestResponse) {};
+
+  // 双方向ストリーミングRPC
+  rpc BidirectionalStreaming (stream TestRequest) returns (stream TestResponse) {};
+}
