@@ -20,15 +20,17 @@ func main() {
 	defer conn.Close()
 
 	client := pb.NewTestClient(conn)
-	// Unary(client)
+	Unary(client)
 	// ServerStreaming(client)
 	// ClientStreaming(client)
-	BidirectionalStreaming(client)
+	// BidirectionalStreaming(client)
 }
 
 func Unary(client pb.TestClient) {
+
 	req := &pb.TestRequest{}
-	req.Name = "Taro"
+	req.Message = "起きろ"
+	fmt.Println("送る値:", req.GetMessage())
 	res, err := client.Unary(context.Background(), req)
 	if err != nil {
 		log.Fatalln(err)
@@ -37,29 +39,10 @@ func Unary(client pb.TestClient) {
 	fmt.Println(res)
 }
 
-// func AStreaming(client pb.TestClient) error {
-// 	req := &pb.ARequest{}
-// 	req.Name = "Taro"
-// 	stream, err := client.AStreaming(context.Background(), req)
-// 	if err != nil {
-// 		log.Fatalln(err)
-// 	}
-// 	for {
-// 		reply, err := stream.Recv()
-// 		if err == io.EOF {
-// 			break
-// 		}
-// 		if err != nil {
-// 			return err
-// 		}
-// 		log.Println("これ：", reply.GetMessage())
-// 	}
-// 	return nil
-// }
-
 func ServerStreaming(client pb.TestClient) error {
 	req := &pb.TestRequest{}
-	req.Name = "Taro"
+	req.Message = "明日起こして"
+	fmt.Println("送る値: ", req.GetMessage())
 	stream, err := client.ServerStreaming(context.Background(), req)
 	if err != nil {
 		log.Fatalln(err)
@@ -72,8 +55,12 @@ func ServerStreaming(client pb.TestClient) error {
 		if err != nil {
 			return err
 		}
-		log.Println("これ：", reply.GetMessage())
+		log.Println("返ってきた値: ", reply.Message)
 	}
+	req2 := &pb.TestRequest{}
+	req2.Message = "起きた"
+	fmt.Println("送る値: ", req2.GetMessage())
+	client.Unary(context.Background(), req2)
 	return nil
 }
 
@@ -82,11 +69,11 @@ func ClientStreaming(client pb.TestClient) error {
 	if err != nil {
 		return err
 	}
-	values := []int32{1, 2, 3, 4, 5}
+	values := []string{"太郎", "二郎", "三郎", "四郎", "五郎"}
 	for _, value := range values {
 		fmt.Println("送る値:", value)
 		if err := stream.Send(&pb.TestRequest{
-			Name: "aa",
+			Name: value,
 		}); err != nil {
 			if err == io.EOF {
 				break
@@ -115,12 +102,18 @@ func BidirectionalStreaming(client pb.TestClient) {
 			if err != nil {
 				log.Fatalln(err)
 			}
-			req := &pb.TestRequest{Name: "Taro"}
-			sendErr := stream.Send(req)
-			if sendErr != nil {
-				log.Fatalln(sendErr)
+			talks := []string{"私たちは", "太郎", "二郎", "三郎", "四郎", "五郎", "あなたたちは?"}
+			for _, talk := range talks {
+				fmt.Println("送る値:", talk)
+				req := &pb.TestRequest{
+					Message: talk,
+				}
+
+				time.Sleep(1 * time.Second)
+				err = stream.Send(req)
 			}
 			time.Sleep(1 * time.Second)
+			return
 		}
 	}()
 
@@ -132,10 +125,12 @@ func BidirectionalStreaming(client pb.TestClient) {
 			if err == io.EOF {
 				break
 			}
+			fmt.Println("返ってきたよ: ", res.GetMessage())
+
 			if err != nil {
 				log.Fatalln(err)
+				break
 			}
-			log.Printf("received message: %v", res.GetMessage())
 		}
 		close(ch)
 	}()

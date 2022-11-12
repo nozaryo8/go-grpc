@@ -17,24 +17,25 @@ type server struct {
 }
 
 func (*server) Unary(ctx context.Context, req *pb.TestRequest) (*pb.TestResponse, error) {
-	fmt.Println("HelloReply was invoked")
+	fmt.Println("キャッチした: ", req.GetMessage())
 	res := &pb.TestResponse{}
-	res.Message = req.GetName()
+	res.Message = "起きた"
+	time.Sleep(2 * time.Second)
 
+	fmt.Println("送る値: ", res.GetMessage())
 	return res, nil
 }
 
 func (*server) ServerStreaming(req *pb.TestRequest, stream pb.Test_ServerStreamingServer) error {
-	fmt.Println("ServerStreaming was invoked")
 	res := &pb.TestResponse{}
-
+	fmt.Println("キャッチした: ", req.GetMessage())
 	for i := 0; i < 5; i++ {
-
-		res.Message = req.GetName()
+		res.Message = "起きろ"
 		sendErr := stream.Send(res)
 		if sendErr != nil {
 			return sendErr
 		}
+		fmt.Println("送る値: ", res.GetMessage())
 		time.Sleep(1 * time.Second)
 	}
 
@@ -43,27 +44,25 @@ func (*server) ServerStreaming(req *pb.TestRequest, stream pb.Test_ServerStreami
 }
 
 func (*server) ClientStreaming(stream pb.Test_ClientStreamingServer) error {
-	fmt.Println("Upload was invoked")
 
-	var sum int32
+	var result string = ""
 	for {
 		req, err := stream.Recv()
+		name := req.GetName()
+		fmt.Println("キャッチした: ", req.GetName())
+		result += "Hello " + name + ", "
 		if err == io.EOF {
-			message := fmt.Sprintf("DONE: sum = %d", sum)
 			return stream.SendAndClose(&pb.TestResponse{
-				Message: message,
+				Message: result,
 			})
 		}
 		if err != nil {
 			return err
 		}
-		fmt.Println(req.GetName())
-		sum = 15
 	}
 }
 
 func (*server) BidirectionalStreaming(stream pb.Test_BidirectionalStreamingServer) error {
-	size := 0
 
 	for {
 		req, err := stream.Recv()
@@ -73,34 +72,25 @@ func (*server) BidirectionalStreaming(stream pb.Test_BidirectionalStreamingServe
 		if err != nil {
 			return err
 		}
-		data := req.GetName()
-		log.Printf("received data: %v", data)
-		size += len(data)
+		fmt.Println("送られた値: ", req.GetMessage())
+		if req.GetMessage() == "あなたたちは?" {
+			talks := []string{"とても多いですね。", "私たちはGo1", "Go2", "Go3", "Go4", "Go5です"}
 
-		res := &pb.TestResponse{
-			Message: fmt.Sprintf("received %v bytes", size),
+			for _, talk := range talks {
+				fmt.Println("送る値:", talk)
+				res := &pb.TestResponse{
+					Message: talk,
+				}
+				time.Sleep(1 * time.Second)
+				err = stream.Send(res)
+				if err != nil {
+					return err
+				}
+			}
 		}
-		err = stream.Send(res)
-		if err != nil {
-			return err
-		}
-	}
-}
-func (*server) AStreaming(req *pb.ARequest, stream pb.Test_AStreamingServer) error {
-	fmt.Println("ServerStreaming was invoked")
-	res := &pb.AResponse{}
 
-	for i := 0; i < 5; i++ {
-		res.Message = req.GetName()
-		sendErr := stream.Send(res)
-		if sendErr != nil {
-			return sendErr
-		}
 		time.Sleep(1 * time.Second)
 	}
-
-	return nil
-
 }
 
 func main() {
